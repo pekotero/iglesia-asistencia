@@ -22,7 +22,7 @@ function App() {
     <div>
       <header className="app-header">
         <div className="header-content">
-          <div className="logo-circle">🕊️</div>
+          <img src="/logo.png" alt="Logo" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 12, borderRadius: "50%", background: "white", padding: 4 }} />
           <h1>Camino De Libertad</h1>
           <p>Control de Asistencia</p>
         </div>
