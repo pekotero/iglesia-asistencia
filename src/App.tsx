@@ -21,19 +21,22 @@ function App() {
   return (
     <div>
       <header className="app-header">
-        <h1>⛪ Asistencia Iglesia</h1>
-        <p>Sistema de control de asistencia</p>
+        <div className="header-content">
+          <div className="logo-circle">🕊️</div>
+          <h1>Camino De Libertad</h1>
+          <p>Control de Asistencia</p>
+        </div>
       </header>
 
       <nav className="nav-tabs">
         <button className={`nav-tab ${activeTab === "attendance" ? "active" : ""}`} onClick={() => setActiveTab("attendance")}>
-          ✅ Pasar Lista
+          📋 Asistencia
         </button>
         <button className={`nav-tab ${activeTab === "members" ? "active" : ""}`} onClick={() => setActiveTab("members")}>
-          👥 Miembros
+          👥 Personas
         </button>
         <button className={`nav-tab ${activeTab === "history" ? "active" : ""}`} onClick={() => setActiveTab("history")}>
-          📋 Historial
+          📚 Historial
         </button>
       </nav>
 
