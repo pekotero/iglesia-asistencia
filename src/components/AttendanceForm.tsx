@@ -18,14 +18,13 @@ export function AttendanceForm({ members, showToast }: Props) {
   const [search, setSearch] = useState("");
   const [newType, setNewType] = useState("");
   const [showManageTypes, setShowManageTypes] = useState(false);
-  const [filterGroup, setFilterGroup] = useState<"Todos" | "Servidores" | "Lideres">("Todos");
+  const [filterGroup, setFilterGroup] = useState<"Todos" | "Servidores" | "Encargados">("Todos");
 
   const meetingTypes = useQuery(api.meetingTypes.getAll);
   const saveAttendance = useMutation(api.attendance.save);
   const addType = useMutation(api.meetingTypes.add);
   const removeType = useMutation(api.meetingTypes.remove);
 
-  // Tipos por defecto la primera vez
   useEffect(() => {
     if (meetingTypes && meetingTypes.length === 0) {
       const defaults = [
@@ -164,7 +163,7 @@ export function AttendanceForm({ members, showToast }: Props) {
         <div className="btn-group no-print" style={{ marginBottom: 12 }}>
           <button className={`btn btn-sm ${filterGroup === "Todos" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Todos")}>Todos</button>
           <button className={`btn btn-sm ${filterGroup === "Servidores" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Servidores")}>Servidores</button>
-          <button className={`btn btn-sm ${filterGroup === "Lideres" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Lideres")}>Líderes</button>
+          <button className={`btn btn-sm ${filterGroup === "Encargados" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Encargados")}>Encargados</button>
         </div>
 
         <div className="search-box no-print">

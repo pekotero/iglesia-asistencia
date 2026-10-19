@@ -26,9 +26,9 @@ export function MemberList({ members, showToast }: Props) {
   );
 
   const servidores = filtered.filter((m) => m.group === "Servidores");
-  const lideres = filtered.filter((m) => m.group === "Lideres");
+  const encargados = filtered.filter((m) => m.group === "Encargados");
   const sinGrupo = filtered.filter(
-    (m) => m.group !== "Servidores" && m.group !== "Lideres"
+    (m) => m.group !== "Servidores" && m.group !== "Encargados"
   );
 
   const startEdit = (m: Doc<"members">) => {
@@ -37,7 +37,7 @@ export function MemberList({ members, showToast }: Props) {
     setEditPhone(m.phone || "");
     setEditBirth(m.birthDate || "");
     setEditGroup(
-      m.group === "Servidores" || m.group === "Lideres" ? m.group : "Servidores"
+      m.group === "Servidores" || m.group === "Encargados" ? m.group : "Servidores"
     );
   };
 
@@ -55,7 +55,7 @@ export function MemberList({ members, showToast }: Props) {
   };
 
   const renderList = (list: Doc<"members">[], title: string, emoji: string) => {
-    if (list.length === 0 && title !== "Servidores" && title !== "Líderes") return null;
+    if (list.length === 0 && title !== "Servidores" && title !== "Encargados") return null;
     return (
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-title" style={{ marginBottom: 12 }}>
@@ -97,7 +97,7 @@ export function MemberList({ members, showToast }: Props) {
                     style={{ marginBottom: 8 }}
                   >
                     <option value="Servidores">Servidores</option>
-                    <option value="Lideres">Líderes</option>
+                    <option value="Encargados">Encargados</option>
                   </select>
                   <div className="btn-group">
                     <button className="btn btn-primary btn-sm" onClick={saveEdit}>
@@ -175,13 +175,13 @@ export function MemberList({ members, showToast }: Props) {
           }}
         >
           ⚠️ Tenés <strong>{sinGrupo.length}</strong> persona(s) sin grupo asignado.
-          Tocá el ✏️ y elegí <strong>Servidores</strong> o <strong>Líderes</strong>.
+          Tocá el ✏️ y elegí <strong>Servidores</strong> o <strong>Encargados</strong>.
         </div>
       )}
 
       {renderList(sinGrupo, "Sin Grupo", "❓")}
       {renderList(servidores, "Servidores", "🛠️")}
-      {renderList(lideres, "Líderes", "⭐")}
+      {renderList(encargados, "Encargados", "⭐")}
     </>
   );
 }

@@ -46,7 +46,7 @@ export function AddMember({ showToast }: Props) {
             <label className="form-label">Grupo *</label>
             <select className="form-select" value={group} onChange={(e) => setGroup(e.target.value)}>
               <option value="Servidores">Servidores</option>
-              <option value="Lideres">Líderes</option>
+              <option value="Encargados">Encargados</option>
             </select>
           </div>
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 10 }}>Guardar</button>
