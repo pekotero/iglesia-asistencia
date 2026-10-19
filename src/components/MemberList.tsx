@@ -27,13 +27,18 @@ export function MemberList({ members, showToast }: Props) {
 
   const servidores = filtered.filter((m) => m.group === "Servidores");
   const lideres = filtered.filter((m) => m.group === "Lideres");
+  const sinGrupo = filtered.filter(
+    (m) => m.group !== "Servidores" && m.group !== "Lideres"
+  );
 
   const startEdit = (m: Doc<"members">) => {
     setEditingId(m._id);
     setEditName(m.name);
     setEditPhone(m.phone || "");
     setEditBirth(m.birthDate || "");
-    setEditGroup(m.group || "Servidores");
+    setEditGroup(
+      m.group === "Servidores" || m.group === "Lideres" ? m.group : "Servidores"
+    );
   };
 
   const saveEdit = async () => {
@@ -49,64 +54,103 @@ export function MemberList({ members, showToast }: Props) {
     showToast("✅ Guardado");
   };
 
-  const renderList = (list: Doc<"members">[], title: string, emoji: string) => (
-    <div className="card" style={{ marginTop: 16 }}>
-      <div className="card-title" style={{ marginBottom: 12 }}>
-        {emoji} {title} ({list.length})
-      </div>
-      {list.length === 0 ? (
-        <p style={{ color: "var(--text-light)", fontSize: "0.9rem" }}>Nadie en este grupo aún</p>
-      ) : (
-        list.map((m) => (
-          <div key={m._id} className="member-item">
-            {editingId === m._id ? (
-              <div style={{ flex: 1 }}>
-                <input className="form-input" value={editName} onChange={(e) => setEditName(e.target.value)} style={{ marginBottom: 8 }} />
-                <input className="form-input" placeholder="Teléfono" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} style={{ marginBottom: 8 }} />
-                <input type="date" className="form-input" value={editBirth} onChange={(e) => setEditBirth(e.target.value)} style={{ marginBottom: 8 }} />
-                <select className="form-select" value={editGroup} onChange={(e) => setEditGroup(e.target.value)} style={{ marginBottom: 8 }}>
-                  <option value="Servidores">Servidores</option>
-                  <option value="Lideres">Líderes</option>
-                </select>
-                <div className="btn-group">
-                  <button className="btn btn-primary btn-sm" onClick={saveEdit}>Guardar</button>
-                  <button className="btn btn-outline btn-sm" onClick={() => setEditingId(null)}>Cancelar</button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="member-info">
-                  <div className="member-avatar">{m.name.charAt(0)}</div>
-                  <div className="member-details">
-                    <h4>{m.name}</h4>
-                    <span className="member-meta">
-                      {m.phone && `📱 ${m.phone}`}
-                      {m.phone && m.birthDate && " • "}
-                      {m.birthDate && `🎂 ${m.birthDate}`}
-                    </span>
+  const renderList = (list: Doc<"members">[], title: string, emoji: string) => {
+    if (list.length === 0 && title !== "Servidores" && title !== "Líderes") return null;
+    return (
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title" style={{ marginBottom: 12 }}>
+          {emoji} {title} ({list.length})
+        </div>
+        {list.length === 0 ? (
+          <p style={{ color: "var(--text-light)", fontSize: "0.9rem" }}>
+            Nadie en este grupo aún
+          </p>
+        ) : (
+          list.map((m) => (
+            <div key={m._id} className="member-item">
+              {editingId === m._id ? (
+                <div style={{ flex: 1 }}>
+                  <input
+                    className="form-input"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <input
+                    className="form-input"
+                    placeholder="Teléfono"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={editBirth}
+                    onChange={(e) => setEditBirth(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <select
+                    className="form-select"
+                    value={editGroup}
+                    onChange={(e) => setEditGroup(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  >
+                    <option value="Servidores">Servidores</option>
+                    <option value="Lideres">Líderes</option>
+                  </select>
+                  <div className="btn-group">
+                    <button className="btn btn-primary btn-sm" onClick={saveEdit}>
+                      Guardar
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancelar
+                    </button>
                   </div>
                 </div>
-                <div className="member-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => startEdit(m)}>✏️</button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={async () => {
-                      if (confirm(`¿Quitar a ${m.name}?`)) {
-                        await deactivateMember({ id: m._id as Id<"members"> });
-                        showToast("Eliminado");
-                      }
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        ))
-      )}
-    </div>
-  );
+              ) : (
+                <>
+                  <div className="member-info">
+                    <div className="member-avatar">{m.name.charAt(0)}</div>
+                    <div className="member-details">
+                      <h4>{m.name}</h4>
+                      <span className="member-meta">
+                        {m.phone && `📱 ${m.phone}`}
+                        {m.phone && m.birthDate && " • "}
+                        {m.birthDate && `🎂 ${m.birthDate}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="member-actions">
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => startEdit(m)}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={async () => {
+                        if (confirm(`¿Quitar a ${m.name}?`)) {
+                          await deactivateMember({ id: m._id as Id<"members"> });
+                          showToast("Eliminado");
+                        }
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -118,6 +162,24 @@ export function MemberList({ members, showToast }: Props) {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+
+      {sinGrupo.length > 0 && (
+        <div
+          style={{
+            background: "#fef3c7",
+            border: "1px solid #d97706",
+            padding: 14,
+            borderRadius: 12,
+            marginTop: 16,
+            fontSize: "0.9rem",
+          }}
+        >
+          ⚠️ Tenés <strong>{sinGrupo.length}</strong> persona(s) sin grupo asignado.
+          Tocá el ✏️ y elegí <strong>Servidores</strong> o <strong>Líderes</strong>.
+        </div>
+      )}
+
+      {renderList(sinGrupo, "Sin Grupo", "❓")}
       {renderList(servidores, "Servidores", "🛠️")}
       {renderList(lideres, "Líderes", "⭐")}
     </>
