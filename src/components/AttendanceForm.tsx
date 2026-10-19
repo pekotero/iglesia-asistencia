@@ -1,48 +1,100 @@
-import { useState, useMemo } from "react";
-import { useMutation } from "convex/react";
+import { useState, useMemo, useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import { generatePDF } from "../utils/pdfGenerator";
 
-interface Props { members: Doc<"members">[] | undefined; showToast: (msg: string) => void; }
+interface Props {
+  members: Doc<"members">[] | undefined;
+  showToast: (msg: string) => void;
+}
 
 export function AttendanceForm({ members, showToast }: Props) {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
-  const [title, setTitle] = useState("Asistencia Reunion General");
+  const [title, setTitle] = useState("");
   const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState("");
+  const [newType, setNewType] = useState("");
+  const [showManageTypes, setShowManageTypes] = useState(false);
+  const [filterGroup, setFilterGroup] = useState<"Todos" | "Servidores" | "Lideres">("Todos");
 
+  const meetingTypes = useQuery(api.meetingTypes.getAll);
   const saveAttendance = useMutation(api.attendance.save);
+  const addType = useMutation(api.meetingTypes.add);
+  const removeType = useMutation(api.meetingTypes.remove);
+
+  // Tipos por defecto la primera vez
+  useEffect(() => {
+    if (meetingTypes && meetingTypes.length === 0) {
+      const defaults = [
+        "Asistencia Reunion General",
+        "Asistencia Oracion",
+        "Asistencia casa de Paz",
+        "Entrevistas",
+      ];
+      defaults.forEach((name) => addType({ name }));
+    }
+  }, [meetingTypes]);
+
+  useEffect(() => {
+    if (meetingTypes && meetingTypes.length > 0 && !title) {
+      setTitle(meetingTypes[0].name);
+    }
+  }, [meetingTypes]);
+
   const filtered = useMemo(() => {
     if (!members) return [];
-    return members.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
-  }, [members, search]);
+    return members.filter((m) => {
+      const matchName = m.name.toLowerCase().includes(search.toLowerCase());
+      const matchGroup = filterGroup === "Todos" || m.group === filterGroup;
+      return matchName && matchGroup;
+    });
+  }, [members, search, filterGroup]);
 
   const toggle = (id: string) => {
     setPresentIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
   const selectAll = () => {
-    if (!members) return;
-    if (presentIds.size === members.length) setPresentIds(new Set());
-    else setPresentIds(new Set(members.map((m) => m._id)));
+    if (filtered.length === 0) return;
+    const allSelected = filtered.every((m) => presentIds.has(m._id));
+    setPresentIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) filtered.forEach((m) => next.delete(m._id));
+      else filtered.forEach((m) => next.add(m._id));
+      return next;
+    });
   };
 
   const handleSave = async () => {
-    if (!members || members.length === 0) return;
-    const records = members.map((m) => ({ memberId: m._id as Id<"members">, memberName: m.name, present: presentIds.has(m._id) }));
+    if (!members || members.length === 0 || !title) return;
+    const records = members.map((m) => ({
+      memberId: m._id as Id<"members">,
+      memberName: m.name,
+      present: presentIds.has(m._id),
+    }));
     await saveAttendance({ date, title, records });
-    setSaved(true); showToast("✅ Asistencia guardada");
+    setSaved(true);
+    showToast("✅ Asistencia guardada");
+  };
+
+  const handleAddType = async () => {
+    if (!newType.trim()) return;
+    await addType({ name: newType.trim() });
+    setTitle(newType.trim());
+    setNewType("");
+    showToast("✅ Tipo agregado");
   };
 
   if (!members) return <div className="loading"><div className="spinner" /></div>;
-  
+
   const totalPresent = presentIds.size;
   const totalAbsent = members.length - totalPresent;
 
@@ -53,15 +105,53 @@ export function AttendanceForm({ members, showToast }: Props) {
           <label className="form-label">Fecha</label>
           <input type="date" className="form-input" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
+
         <div className="form-group">
           <label className="form-label">Tipo de reunión</label>
           <select className="form-select" value={title} onChange={(e) => setTitle(e.target.value)}>
-            <option>Asistencia Reunion General</option>
-            <option>Asistencia Oracion</option>
-            <option>Asistencia casa de Paz</option>
-            <option>Entrevistas</option>
+            {meetingTypes?.map((t) => (
+              <option key={t._id} value={t.name}>{t.name}</option>
+            ))}
           </select>
         </div>
+
+        <button
+          className="btn btn-outline btn-sm"
+          style={{ marginBottom: 12 }}
+          onClick={() => setShowManageTypes(!showManageTypes)}
+        >
+          {showManageTypes ? "Cerrar" : "⚙️ Agregar / Quitar tipos"}
+        </button>
+
+        {showManageTypes && (
+          <div style={{ background: "#f8fafc", padding: 14, borderRadius: 12, marginBottom: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <input
+                className="form-input"
+                placeholder="Nuevo tipo de reunión..."
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+              />
+              <button className="btn btn-primary btn-sm" onClick={handleAddType}>➕</button>
+            </div>
+            {meetingTypes?.map((t) => (
+              <div key={t._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e2e8f0" }}>
+                <span>{t.name}</span>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={async () => {
+                    if (confirm(`¿Eliminar "${t.name}"?`)) {
+                      await removeType({ id: t._id });
+                      showToast("Eliminado");
+                    }
+                  }}
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="stats-row">
@@ -71,31 +161,68 @@ export function AttendanceForm({ members, showToast }: Props) {
       </div>
 
       <div className="card">
+        <div className="btn-group no-print" style={{ marginBottom: 12 }}>
+          <button className={`btn btn-sm ${filterGroup === "Todos" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Todos")}>Todos</button>
+          <button className={`btn btn-sm ${filterGroup === "Servidores" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Servidores")}>Servidores</button>
+          <button className={`btn btn-sm ${filterGroup === "Lideres" ? "btn-primary" : "btn-outline"}`} onClick={() => setFilterGroup("Lideres")}>Líderes</button>
+        </div>
+
         <div className="search-box no-print">
           <input className="form-input" placeholder="🔍 Buscar persona..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+
         <div className="select-all-bar no-print">
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input type="checkbox" className="attendance-checkbox" checked={presentIds.size === members.length && members.length > 0} onChange={selectAll} />
-            Marcar Todos
+            <input
+              type="checkbox"
+              className="attendance-checkbox"
+              checked={filtered.length > 0 && filtered.every((m) => presentIds.has(m._id))}
+              onChange={selectAll}
+            />
+            Marcar Todos ({filterGroup})
           </label>
         </div>
+
         {filtered.map((m) => (
-          <div key={m._id} className={`attendance-item ${presentIds.has(m._id) ? "present" : ""}`} onClick={() => toggle(m._id)}>
-            <input type="checkbox" className="attendance-checkbox" checked={presentIds.has(m._id)} onChange={() => toggle(m._id)} onClick={(e) => e.stopPropagation()} />
+          <div
+            key={m._id}
+            className={`attendance-item ${presentIds.has(m._id) ? "present" : ""}`}
+            onClick={() => toggle(m._id)}
+          >
+            <input
+              type="checkbox"
+              className="attendance-checkbox"
+              checked={presentIds.has(m._id)}
+              onChange={() => toggle(m._id)}
+              onClick={(e) => e.stopPropagation()}
+            />
             <div className="member-avatar">{m.name.charAt(0)}</div>
-            <span className="attendance-name">{m.name}</span>
+            <div style={{ flex: 1 }}>
+              <div className="attendance-name">{m.name}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>{m.group}</div>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="card no-print">
         <div className="btn-group" style={{ flexDirection: "column" }}>
-          <button className="btn btn-primary btn-block" onClick={handleSave}>💾 {saved ? "Actualizar" : "Guardar"} Asistencia</button>
-          <button className="btn btn-outline btn-block" onClick={() => {
-            const records = members.map((m) => ({ name: m.name, group: m.group || "", present: presentIds.has(m._id) }));
-            generatePDF(date, title, records);
-          }}>📄 Descargar PDF</button>
+          <button className="btn btn-primary btn-block" onClick={handleSave}>
+            💾 {saved ? "Actualizar" : "Guardar"} Asistencia
+          </button>
+          <button
+            className="btn btn-outline btn-block"
+            onClick={() => {
+              const records = members.map((m) => ({
+                name: m.name,
+                group: m.group || "",
+                present: presentIds.has(m._id),
+              }));
+              generatePDF(date, title, records);
+            }}
+          >
+            📄 Descargar PDF
+          </button>
         </div>
       </div>
     </>

@@ -9,15 +9,17 @@ export function AddMember({ showToast }: Props) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [group, setGroup] = useState("Servidores");
 
   const addMember = useMutation(api.members.add);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    await addMember({ name: name.trim(), phone, birthDate, group: "General" });
-    setName(""); setPhone(""); setBirthDate("");
-    showToast(`✅ Agregado`); setShowForm(false);
+    await addMember({ name: name.trim(), phone, birthDate, group });
+    setName(""); setPhone(""); setBirthDate(""); setGroup("Servidores");
+    showToast(`✅ ${name} agregado a ${group}`);
+    setShowForm(false);
   };
 
   return (
@@ -40,7 +42,14 @@ export function AddMember({ showToast }: Props) {
             <label className="form-label">Fecha de Nacimiento</label>
             <input type="date" className="form-input" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </div>
-          <button type="submit" className="btn btn-primary btn-block" style={{marginTop: 10}}>Guardar</button>
+          <div className="form-group">
+            <label className="form-label">Grupo *</label>
+            <select className="form-select" value={group} onChange={(e) => setGroup(e.target.value)}>
+              <option value="Servidores">Servidores</option>
+              <option value="Lideres">Líderes</option>
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 10 }}>Guardar</button>
         </form>
       )}
     </div>
