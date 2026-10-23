@@ -6,16 +6,18 @@ export default defineSchema({
     name: v.string(),
     phone: v.optional(v.string()),
     birthDate: v.optional(v.string()),
-    group: v.string(), // "Servidores" | "Lideres"
+    group: v.string(),
     active: v.boolean(),
     createdAt: v.number(),
   }),
-
   meetingTypes: defineTable({
     name: v.string(),
     createdAt: v.number(),
   }),
-
+  groups: defineTable({
+    name: v.string(),
+    createdAt: v.number(),
+  }),
   attendance: defineTable({
     date: v.string(),
     title: v.optional(v.string()),
