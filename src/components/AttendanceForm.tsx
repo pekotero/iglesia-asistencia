@@ -28,14 +28,19 @@ export function AttendanceForm({ members, showToast }: Props) {
     if (meetingTypes && meetingTypes.length > 0 && !title) setTitle(meetingTypes[0].name);
   }, [meetingTypes]);
 
-  const filtered = useMemo(() => {
+  // Integrantes a evaluar según el grupo seleccionado
+  const groupMembers = useMemo(() => {
     if (!members) return [];
-    return members.filter((m) => {
-      const matchName = m.name.toLowerCase().includes(search.toLowerCase());
-      const matchGroup = filterGroup === "Todos" || m.group === filterGroup;
-      return matchName && matchGroup;
-    });
-  }, [members, search, filterGroup]);
+    if (filterGroup === "Todos") return members;
+    return members.filter((m) => m.group === filterGroup);
+  }, [members, filterGroup]);
+
+  // Filtrado adicional por búsqueda
+  const displayedMembers = useMemo(() => {
+    return groupMembers.filter((m) =>
+      m.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [groupMembers, search]);
 
   const toggle = (id: string) => {
     setPresentIds((prev) => {
@@ -46,27 +51,35 @@ export function AttendanceForm({ members, showToast }: Props) {
   };
 
   const selectAll = () => {
-    if (filtered.length === 0) return;
-    const allSelected = filtered.every((m) => presentIds.has(m._id));
+    if (displayedMembers.length === 0) return;
+    const allSelected = displayedMembers.every((m) => presentIds.has(m._id));
     setPresentIds((prev) => {
       const next = new Set(prev);
-      if (allSelected) filtered.forEach((m) => next.delete(m._id));
-      else filtered.forEach((m) => next.add(m._id));
+      if (allSelected) displayedMembers.forEach((m) => next.delete(m._id));
+      else displayedMembers.forEach((m) => next.add(m._id));
       return next;
     });
   };
 
   const handleSave = async () => {
-    if (!members || members.length === 0 || !title) return;
-    const records = members.map((m) => ({ memberId: m._id as Id<"members">, memberName: m.name, present: presentIds.has(m._id) }));
-    await saveAttendance({ date, title, records });
-    setSaved(true); showToast("✅ Asistencia guardada");
+    if (!groupMembers || groupMembers.length === 0 || !title) return;
+    const records = groupMembers.map((m) => ({
+      memberId: m._id as Id<"members">,
+      memberName: m.name,
+      present: presentIds.has(m._id),
+    }));
+    
+    const fullTitle = filterGroup === "Todos" ? title : `${title} (${filterGroup})`;
+
+    await saveAttendance({ date, title: fullTitle, records });
+    setSaved(true);
+    showToast(`✅ Asistencia guardada (${groupMembers.length} personas)`);
   };
 
   if (!members) return <div className="loading"><div className="spinner" /></div>;
 
-  const totalPresent = presentIds.size;
-  const totalAbsent = members.length - totalPresent;
+  const totalPresent = groupMembers.filter((m) => presentIds.has(m._id)).length;
+  const totalAbsent = groupMembers.length - totalPresent;
 
   return (
     <>
@@ -104,30 +117,36 @@ export function AttendanceForm({ members, showToast }: Props) {
         )}
       </div>
 
+      <div className="card no-print" style={{ background: "#e0e7ff", border: "1px solid #6366f1" }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label" style={{ color: "#3730a3" }}>📌 ¿A qué grupo le vas a pasar lista?</label>
+          <select className="form-select" value={filterGroup} onChange={(e) => {
+            setFilterGroup(e.target.value);
+            setSaved(false);
+          }}>
+            <option value="Todos">Toda la iglesia (Todos los grupos)</option>
+            {groups?.map((g) => <option key={g._id} value={g.name}>Solo grupo: ${g.name}</option>)}
+          </select>
+        </div>
+      </div>
+
       <div className="stats-row">
-        <div className="stat-card total"><div className="stat-number">{members.length}</div><div className="stat-label">Total</div></div>
+        <div className="stat-card total"><div className="stat-number">{groupMembers.length}</div><div className="stat-label">Total (${filterGroup})</div></div>
         <div className="stat-card present"><div className="stat-number">{totalPresent}</div><div className="stat-label">Presentes</div></div>
         <div className="stat-card absent"><div className="stat-number">{totalAbsent}</div><div className="stat-label">Ausentes</div></div>
       </div>
 
       <div className="card">
-        <div className="form-group no-print">
-          <label className="form-label">Filtrar lista por grupo</label>
-          <select className="form-select" value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)}>
-            <option value="Todos">Todos los grupos</option>
-            {groups?.map((g) => <option key={g._id} value={g.name}>{g.name}</option>)}
-          </select>
-        </div>
         <div className="search-box no-print">
           <input className="form-input" placeholder="🔍 Buscar persona..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="select-all-bar no-print">
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input type="checkbox" className="attendance-checkbox" checked={filtered.length > 0 && filtered.every((m) => presentIds.has(m._id))} onChange={selectAll} />
-            Marcar visibles
+            <input type="checkbox" className="attendance-checkbox" checked={displayedMembers.length > 0 && displayedMembers.every((m) => presentIds.has(m._id))} onChange={selectAll} />
+            Marcar visibles (${displayedMembers.length})
           </label>
         </div>
-        {filtered.map((m) => (
+        {displayedMembers.map((m) => (
           <div key={m._id} className={`attendance-item ${presentIds.has(m._id) ? "present" : ""}`} onClick={() => toggle(m._id)}>
             <input type="checkbox" className="attendance-checkbox" checked={presentIds.has(m._id)} onChange={() => toggle(m._id)} onClick={(e) => e.stopPropagation()} />
             <div className="member-avatar">{m.name.charAt(0)}</div>
@@ -142,7 +161,10 @@ export function AttendanceForm({ members, showToast }: Props) {
       <div className="card no-print">
         <div className="btn-group" style={{ flexDirection: "column" }}>
           <button className="btn btn-primary btn-block" onClick={handleSave}>💾 {saved ? "Actualizar" : "Guardar"} Asistencia</button>
-          <button className="btn btn-outline btn-block" onClick={() => generatePDF(date, title, members.map(m => ({ name: m.name, group: m.group || "", present: presentIds.has(m._id) })))}>📄 Descargar PDF</button>
+          <button className="btn btn-outline btn-block" onClick={() => {
+            const fullTitle = filterGroup === "Todos" ? title : `${title} (${filterGroup})`;
+            generatePDF(date, fullTitle, groupMembers.map(m => ({ name: m.name, group: m.group || "", present: presentIds.has(m._id) })));
+          }}>📄 Descargar PDF</button>
         </div>
       </div>
     </>
