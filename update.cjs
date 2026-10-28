@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const files = {
-  // ATTENDANCE FORM MEJORADO (Filtra de verdad el grupo para la asistencia)
   'src/components/AttendanceForm.tsx': `
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -34,14 +33,12 @@ export function AttendanceForm({ members, showToast }: Props) {
     if (meetingTypes && meetingTypes.length > 0 && !title) setTitle(meetingTypes[0].name);
   }, [meetingTypes]);
 
-  // Integrantes a evaluar según el grupo seleccionado
   const groupMembers = useMemo(() => {
     if (!members) return [];
     if (filterGroup === "Todos") return members;
     return members.filter((m) => m.group === filterGroup);
   }, [members, filterGroup]);
 
-  // Filtrado adicional por búsqueda
   const displayedMembers = useMemo(() => {
     return groupMembers.filter((m) =>
       m.name.toLowerCase().includes(search.toLowerCase())
@@ -75,11 +72,11 @@ export function AttendanceForm({ members, showToast }: Props) {
       present: presentIds.has(m._id),
     }));
     
-    const fullTitle = filterGroup === "Todos" ? title : \`\${title} (\${filterGroup})\`;
+    const fullTitle = filterGroup === "Todos" ? title : title + " (" + filterGroup + ")";
 
     await saveAttendance({ date, title: fullTitle, records });
     setSaved(true);
-    showToast(\`✅ Asistencia guardada (\${groupMembers.length} personas)\`);
+    showToast("✅ Asistencia guardada (" + groupMembers.length + " personas)");
   };
 
   if (!members) return <div className="loading"><div className="spinner" /></div>;
@@ -115,7 +112,7 @@ export function AttendanceForm({ members, showToast }: Props) {
               <div key={t._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e2e8f0" }}>
                 <span>{t.name}</span>
                 <button className="btn btn-outline btn-sm" onClick={async () => {
-                  if (confirm(\`¿Eliminar \${t.name}?\`)) { await removeType({ id: t._id }); }
+                  if (confirm("¿Eliminar " + t.name + "?")) { await removeType({ id: t._id }); }
                 }}>🗑️</button>
               </div>
             ))}
@@ -131,13 +128,13 @@ export function AttendanceForm({ members, showToast }: Props) {
             setSaved(false);
           }}>
             <option value="Todos">Toda la iglesia (Todos los grupos)</option>
-            {groups?.map((g) => <option key={g._id} value={g.name}>Solo grupo: \${g.name}</option>)}
+            {groups?.map((g) => <option key={g._id} value={g.name}>Solo grupo: {g.name}</option>)}
           </select>
         </div>
       </div>
 
       <div className="stats-row">
-        <div className="stat-card total"><div className="stat-number">{groupMembers.length}</div><div className="stat-label">Total (\${filterGroup})</div></div>
+        <div className="stat-card total"><div className="stat-number">{groupMembers.length}</div><div className="stat-label">Total ({filterGroup})</div></div>
         <div className="stat-card present"><div className="stat-number">{totalPresent}</div><div className="stat-label">Presentes</div></div>
         <div className="stat-card absent"><div className="stat-number">{totalAbsent}</div><div className="stat-label">Ausentes</div></div>
       </div>
@@ -149,11 +146,11 @@ export function AttendanceForm({ members, showToast }: Props) {
         <div className="select-all-bar no-print">
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" className="attendance-checkbox" checked={displayedMembers.length > 0 && displayedMembers.every((m) => presentIds.has(m._id))} onChange={selectAll} />
-            Marcar visibles (\${displayedMembers.length})
+            Marcar visibles ({displayedMembers.length})
           </label>
         </div>
         {displayedMembers.map((m) => (
-          <div key={m._id} className={\`attendance-item \${presentIds.has(m._id) ? "present" : ""}\`} onClick={() => toggle(m._id)}>
+          <div key={m._id} className={"attendance-item " + (presentIds.has(m._id) ? "present" : "")} onClick={() => toggle(m._id)}>
             <input type="checkbox" className="attendance-checkbox" checked={presentIds.has(m._id)} onChange={() => toggle(m._id)} onClick={(e) => e.stopPropagation()} />
             <div className="member-avatar">{m.name.charAt(0)}</div>
             <div style={{ flex: 1 }}>
@@ -168,7 +165,7 @@ export function AttendanceForm({ members, showToast }: Props) {
         <div className="btn-group" style={{ flexDirection: "column" }}>
           <button className="btn btn-primary btn-block" onClick={handleSave}>💾 {saved ? "Actualizar" : "Guardar"} Asistencia</button>
           <button className="btn btn-outline btn-block" onClick={() => {
-            const fullTitle = filterGroup === "Todos" ? title : \`\${title} (\${filterGroup})\`;
+            const fullTitle = filterGroup === "Todos" ? title : title + " (" + filterGroup + ")";
             generatePDF(date, fullTitle, groupMembers.map(m => ({ name: m.name, group: m.group || "", present: presentIds.has(m._id) })));
           }}>📄 Descargar PDF</button>
         </div>
